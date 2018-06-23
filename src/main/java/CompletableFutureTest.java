@@ -1,4 +1,10 @@
+import javax.management.openmbean.CompositeDataSupport;
+import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public class CompletableFutureTest {
 
@@ -77,7 +83,8 @@ public class CompletableFutureTest {
         int k = 0;
         Random rnd = new Random();
 //        System.out.println("DO!!");
-        int tuples_num = Integer.parseInt(args[0]);
+//        int tuples_num = Integer.parseInt(args[0]);
+        int tuples_num = 50;
 //        System.out.println(tuples_num);
         for(int i = 0; i < tuples_num; i++){
             ArrayList tmp = new ArrayList();
@@ -112,8 +119,10 @@ public class CompletableFutureTest {
         System.out.println();
     }
     private static Hashtable recursiveSort(ArrayList listlist){
+        System.out.println("Into rec Thread-"+Thread.currentThread().getName());
         boolean last_flag = false;
         Hashtable buf = new Hashtable();
+        System.out.println("listlist: "+listlist);
 //        System.out.println("*****in to rec*****");
 //        System.out.println("listlist: "+listlist);
         for(Object list: listlist){
@@ -149,18 +158,36 @@ public class CompletableFutureTest {
         if(!last_flag){
 //            System.out.println("-----into last phase-----");
             Enumeration keys = buf.keys();
+//            //並列じゃない場合
+//            while(keys.hasMoreElements()){
+////                System.out.println("-----into while-----");
+//                ArrayList value_in = new ArrayList();
+//                Object key = keys.nextElement();
+////                System.out.println("key: "+key);
+//                value_in = (ArrayList)buf.get(key);
+////                System.out.println("value_in: "+value_in);
+//                Hashtable ret = recursiveSort(value_in);
+////                System.out.println("ret: "+ret);
+//                buf.put(key, ret);
+////                System.out.println("buf_while_putted: "+buf);
+//            }
+            //ここまで
+            //並列の場合
+            List<CompletableFuture> futurelist = new ArrayList<>();
             while(keys.hasMoreElements()){
-//                System.out.println("-----into while-----");
-                ArrayList value_in = new ArrayList();
                 Object key = keys.nextElement();
-//                System.out.println("key: "+key);
-                value_in = (ArrayList)buf.get(key);
-//                System.out.println("value_in: "+value_in);
-                Hashtable ret = recursiveSort(value_in);
-//                System.out.println("ret: "+ret);
-                buf.put(key, ret);
-//                System.out.println("buf_while_putted: "+buf);
+                final ArrayList value_in = (ArrayList)buf.get(key);
+                Supplier<ArrayList> sup = () -> value_in;
+                Function<ArrayList, Hashtable> fun = v -> recursiveSort(v);
+                Consumer<Hashtable> con = v -> buf.put(key, v);
+                System.out.println(value_in);
+                CompletableFuture<Void> tmp_future = CompletableFuture.supplyAsync(sup).thenApplyAsync(fun).thenAccept(con);
+                futurelist.add(tmp_future);
             }
+            CompletableFuture.allOf(
+                    futurelist.toArray(new CompletableFuture[futurelist.size()])
+            ).join();
+            //ここまで
 //            System.out.println("-----out while-----");
 //            System.out.println("buf_putted_last: "+buf);
 //            System.out.println("*****out rec*****");
@@ -171,4 +198,6 @@ public class CompletableFutureTest {
             return buf;
         }
     }
+
+
 }
