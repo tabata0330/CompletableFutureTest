@@ -82,7 +82,7 @@ public class CompletableFutureTest {
         Random rnd = new Random();
 //        System.out.println("DO!!");
 //        int tuples_num = Integer.parseInt(args[0]);
-        int tuples_num = 50;
+        int tuples_num = 1000000;
 //        System.out.println(tuples_num);
         for(int i = 0; i < tuples_num; i++){
             ArrayList tmp = new ArrayList();
